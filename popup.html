@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI.INPUT.IM Status</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">AI.INPUT.IM</div>
+        <h1>模型状态监控</h1>
+      </div>
+      <button class="icon-button" id="refreshBtn" type="button" title="刷新" aria-label="刷新">
+        <span class="icon-refresh"></span>
+      </button>
+    </header>
+
+    <section class="hero" id="hero">
+      <div class="hero-copy">
+        <div class="status-pill" id="statusPill">读取中</div>
+        <div class="model-name" id="modelName">gpt-5.6-sol</div>
+        <div class="status-line" id="statusLine">正在获取状态源</div>
+      </div>
+      <div class="ring" aria-hidden="true">
+        <div id="ringValue">--</div>
+        <span>60m uptime</span>
+      </div>
+    </section>
+
+    <section class="metrics" aria-label="今日统计">
+      <div class="metric">
+        <span>今日正常</span>
+        <strong id="okToday">--</strong>
+      </div>
+      <div class="metric danger">
+        <span>今日异常</span>
+        <strong id="badToday">--</strong>
+      </div>
+      <div class="metric">
+        <span>异常次数</span>
+        <strong id="badCount">--</strong>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>最近 60 分钟</h2>
+        <span id="lastCheck">--</span>
+      </div>
+      <div class="bars" id="bars" aria-label="状态历史"></div>
+      <div class="axis">
+        <span>-60m</span>
+        <span>-30m</span>
+        <span>now</span>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>状态细节</h2>
+        <span id="sourceStatus">--</span>
+      </div>
+      <dl class="details">
+        <div>
+          <dt>已持续</dt>
+          <dd id="statusDuration">--</dd>
+        </div>
+        <div>
+          <dt>最近延迟</dt>
+          <dd id="latency">--</dd>
+        </div>
+        <div>
+          <dt>模型策略</dt>
+          <dd id="selectionMode">--</dd>
+        </div>
+        <div>
+          <dt>接口状态</dt>
+          <dd id="sourceDuration">--</dd>
+        </div>
+        <div>
+          <dt>错误信息</dt>
+          <dd id="errorText">无</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="services-panel">
+      <div class="panel-head">
+        <h2>&#27169;&#22411;&#21015;&#34920;</h2>
+        <span id="servicesCount">--</span>
+      </div>
+      <div class="services" id="services"></div>
+    </section>
+
+    <footer class="footer">
+      <button id="optionsBtn" type="button">设置</button>
+      <a href="https://status.input.im/" target="_blank" rel="noreferrer">打开状态源</a>
+    </footer>
+  </main>
+  <script src="popup.js"></script>
+</body>
+</html>

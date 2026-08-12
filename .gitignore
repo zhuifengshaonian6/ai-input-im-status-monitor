@@ -1,0 +1,5 @@
+*.zip
+.DS_Store
+Thumbs.db
+popup-audit.png
+.status-extension-ui-*/

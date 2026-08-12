@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI.INPUT.IM Status Monitor 设置</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <p>AI.INPUT.IM Status Monitor</p>
+      <h1>监控设置</h1>
+    </header>
+
+    <form id="form" class="panel">
+      <label>
+        <span>状态接口</span>
+        <input id="sourceUrl" type="url" required>
+      </label>
+      <label>
+        <span>模型优先级</span>
+        <textarea id="modelPriority" rows="6" required></textarea>
+        <small>每行一个模型。插件会从上到下选择第一个当前正常的模型。</small>
+      </label>
+      <label>
+        <span>检查间隔（分钟）</span>
+        <input id="intervalMinutes" type="number" min="1" max="60" step="1" required>
+      </label>
+      <label class="switch-row">
+        <span>
+          <strong>桌面通知</strong>
+          <small>模型发生异常或恢复正常时提示</small>
+        </span>
+        <input id="notificationsEnabled" type="checkbox">
+      </label>
+      <button type="submit">保存设置</button>
+      <div class="result" id="result" role="status"></div>
+    </form>
+  </main>
+  <script src="options.js"></script>
+</body>
+</html>
