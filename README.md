@@ -45,6 +45,14 @@
 | 状态细节 | 最近检查时间、请求延迟和错误信息 |
 | 服务概览 | 状态源返回的全部模型及其可用率 |
 
+## 部署链接
+
+- [打开项目主页](https://github.com/zhuifengshaonian6/ai-input-im-status-monitor)
+- [下载最新版源码 ZIP](https://github.com/zhuifengshaonian6/ai-input-im-status-monitor/archive/refs/heads/main.zip)
+- [查看 Releases](https://github.com/zhuifengshaonian6/ai-input-im-status-monitor/releases)
+
+`main.zip` 会随 `main` 分支更新自动指向最新版。下载并解压后，在 Chrome 或 Edge 的扩展管理页面选择包含 `manifest.json` 的目录即可。
+
 ## 安装
 
 ### 使用发布包
@@ -71,7 +79,7 @@ Codex++ 内置脚本依赖其宿主页面结构。Codex 或 Codex++ 升级后若
 ### 从源码安装
 
 ```bash
-git clone <你的仓库地址>
+git clone https://github.com/zhuifengshaonian6/ai-input-im-status-monitor.git
 ```
 
 克隆后，在扩展管理页面直接加载仓库根目录即可。项目没有构建步骤，也不需要安装依赖。
