@@ -50,7 +50,7 @@ async function main() {
     page.on("pageerror", (error) => errors.push(error.message));
     await page.goto(`chrome-extension://${extensionId}/popup.html`);
     await page.waitForFunction(
-      () => document.querySelector("#currentVersion")?.textContent === "v1.4.0",
+      () => document.querySelector("#currentVersion")?.textContent === "v1.4.1",
       null,
       { timeout: 10_000 }
     );
@@ -98,7 +98,7 @@ async function main() {
     if (errors.length) throw new Error(`Browser errors: ${errors.join(" | ")}`);
     if (result.source !== "读取正常") throw new Error(`Status source: ${result.source}`);
     if (result.services !== "6/6") throw new Error(`Service count: ${result.services}`);
-    if (result.version !== "v1.4.0") throw new Error(`Extension version: ${result.version}`);
+    if (result.version !== "v1.4.1") throw new Error(`Extension version: ${result.version}`);
     if (!result.updateStatus || result.updateStatus.includes("检查失败")) {
       throw new Error(`Update check: ${result.updateStatus}`);
     }

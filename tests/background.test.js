@@ -15,7 +15,7 @@ const context = {
     },
     notifications: { create: async () => {} },
     runtime: {
-      getManifest: () => ({ version: "1.4.0" }),
+      getManifest: () => ({ version: "1.4.1" }),
       onInstalled: listener,
       onStartup: listener,
       onMessage: listener

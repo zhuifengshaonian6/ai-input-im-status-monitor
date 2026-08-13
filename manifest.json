@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "AI.INPUT.IM Status Monitor",
   "description": "Monitor status.input.im model health and notify on model status changes.",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "action": {
     "default_title": "AI.INPUT.IM Status",
     "default_popup": "popup.html",

@@ -32,6 +32,12 @@ async function main() {
     url: location.href,
     auto: window.__inputStatusAutoSwitch?.version || null,
     recovery: window.__codexTaskRecovery?.version || null,
+    suite: window.__codexStatusSuite?.version || null,
+    suiteCount: document.querySelectorAll("body > #codex-status-suite").length,
+    standaloneAuto: Boolean(document.querySelector("body > #input-status-auto-switch")),
+    standaloneRecovery: Boolean(document.querySelector("body > #codex-task-recovery")),
+    autoParent: document.getElementById("input-status-auto-switch")?.parentElement?.dataset?.suitePane || null,
+    recoveryParent: document.getElementById("codex-task-recovery")?.parentElement?.dataset?.suitePane || null,
     autoUi: Boolean(document.getElementById("input-status-auto-switch")),
     recoveryUi: Boolean(document.getElementById("codex-task-recovery")),
     autoCollapsed: document.getElementById("input-status-auto-switch")?.dataset.collapsed || null,
@@ -46,10 +52,13 @@ async function main() {
     const autoOk = state.auto === "0.4.0" && state.autoUi && state.autoCollapsed === "true";
     const recoveryOk = state.recovery === "0.4.0" && state.recoveryUi &&
       state.recoveryCollapsed === "true" && !state.recoveryError;
+    const suiteOk = state.suite === "0.5.0" && state.suiteCount === 1 &&
+      !state.standaloneAuto && !state.standaloneRecovery &&
+      state.autoParent === "models" && state.recoveryParent === "recovery";
     if ((mode === "baseline") ||
         (mode === "auto" && autoOk) ||
         (mode === "recovery" && recoveryOk) ||
-        (mode === "both" && autoOk && recoveryOk)) {
+        (mode === "both" && autoOk && recoveryOk && suiteOk)) {
       console.log(value);
       return;
     }

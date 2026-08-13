@@ -5,7 +5,8 @@ param(
 $ErrorActionPreference = "Stop"
 $modulePaths = @(
   (Join-Path $Root "codex-plus-plus/status-model-auto-switch.js"),
-  (Join-Path $Root "codex-plus-plus/codex-task-recovery.js")
+  (Join-Path $Root "codex-plus-plus/codex-task-recovery.js"),
+  (Join-Path $Root "codex-plus-plus/codex-status-suite-ui.js")
 )
 $target = Join-Path $Root "codex-plus-plus/codex-status-suite.js"
 $header = @"
@@ -13,7 +14,7 @@ $header = @"
 @codex-plus-script
 name: AI.INPUT.IM Codex Status Suite
 description: Monitor model health, switch to the first healthy model, and resume interrupted Codex tasks.
-version: 0.4.0
+version: 0.5.0
 author: AI.INPUT.IM Status Monitor
 */
 
@@ -24,4 +25,9 @@ $modules = foreach ($path in $modulePaths) {
   $source -replace "(?s)^/\*.*?\*/\s*", ""
 }
 
-Set-Content -LiteralPath $target -Value ($header + ($modules -join "`n")) -Encoding UTF8
+$utf8 = New-Object System.Text.UTF8Encoding($false)
+$output = ($header + ($modules -join "
+")).TrimEnd("`r", "
+") + "
+"
+[System.IO.File]::WriteAllText($target, $output, $utf8)

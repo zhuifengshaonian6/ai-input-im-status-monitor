@@ -76,7 +76,7 @@ Windows 与 macOS 的步骤相同，仅文件夹选择界面略有不同。
 3. 启用脚本并重启 Codex++。
 4. 首次使用时打开一次 Codex 原生模型菜单，让脚本发现当前版本的原生模型选择接口。
 5. 查看右下角面板：`AUTO` 表示正在自动检查，`PAUSED` 表示已暂停。
-6. 点击两个面板中的设置按钮，可配置模型顺序、检查间隔、确认次数、检查点间隔和自动恢复次数。
+6. 使用面板内的 `Model status` / `Task recovery` 标签切换功能；顶部设置按钮配置当前标签。
 
 Codex++ 内置脚本依赖其宿主页面结构。Codex 或 Codex++ 升级后若出现“Open the native model menu once to enable switching”，先重新打开一次原生模型菜单；仍无法识别时需要更新兼容选择器。
 

@@ -55,7 +55,12 @@ async function main() {
   await page.addScriptTag({ path: path.join(root, "codex-plus-plus", "codex-status-suite.js") });
   await page.waitForFunction(() =>
     window.__inputStatusAutoSwitch?.version === "0.4.0" &&
-    window.__codexTaskRecovery?.version === "0.4.0"
+    window.__codexTaskRecovery?.version === "0.4.0" &&
+    window.__codexStatusSuite?.version === "0.5.0"
+  );
+  await page.waitForFunction(() =>
+    document.querySelector("#codex-status-suite #input-status-auto-switch") &&
+    document.querySelector("#codex-status-suite #codex-task-recovery")
   );
   await page.evaluate(async () => {
     window.__inputStatusAutoSwitch.updateSettings({ pollSeconds: 17, requiredConfirmations: 1 });
@@ -74,8 +79,10 @@ async function main() {
       retryClicks: window.__retryClicks,
       autoSettings: Boolean(autoRoot?.querySelector("[data-settings-toggle]")),
       recoverySettings: Boolean(recoveryRoot?.querySelector("[data-settings-toggle]")),
-      autoRight: getComputedStyle(autoRoot).right,
-      recoveryRight: getComputedStyle(recoveryRoot).right
+      suiteCount: document.querySelectorAll("body > #codex-status-suite").length,
+      standaloneAuto: Boolean(document.querySelector("body > #input-status-auto-switch")),
+      standaloneRecovery: Boolean(document.querySelector("body > #codex-task-recovery")),
+      activeTab: window.__codexStatusSuite.getState().activeTab
     };
   });
   if (errors.length) throw new Error(errors.join(" | "));
@@ -83,7 +90,9 @@ async function main() {
     throw new Error("Suite settings were not applied");
   }
   if (!result.autoSettings || !result.recoverySettings) throw new Error("Suite settings UI is missing");
-  if (result.autoRight === result.recoveryRight) throw new Error("Suite launchers overlap");
+  if (result.suiteCount !== 1 || result.standaloneAuto || result.standaloneRecovery) {
+    throw new Error("Suite still exposes separate top-level panels");
+  }
   await page.evaluate(() => {
     window.__inputStatusAutoSwitch.dispose();
     window.__codexTaskRecovery.dispose();
