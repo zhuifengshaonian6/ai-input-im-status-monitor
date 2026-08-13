@@ -2,7 +2,7 @@
 @codex-plus-script
 name: Codex Task Recovery
 description: Preserve task checkpoints and safely resume the current Codex task after network or upstream interruptions.
-version: 0.4.0
+version: 0.4.1
 author: AI.INPUT.IM Status Monitor
 */
 
@@ -17,9 +17,11 @@ author: AI.INPUT.IM Status Monitor
   const DEFAULT_CHECKPOINT_SECONDS = 30;
   const DEFAULT_RETRY_SECONDS = 12;
   const DEFAULT_MAX_ATTEMPTS = 3;
-  const ERROR_RE = /failed to fetch|network|offline|connection|timed out|timeout|upstream|temporarily unavailable|service unavailable|中断|网络|连接|超时|上游|不可用|失败|重试/i;
-  const RESUME_RE = /^(retry|try again|retry response|regenerate|continue|resume|重新生成|重试|继续|恢复|再试一次)$/i;
-  const RESUME_HINT_RE = /retry|try again|regenerate|continue|resume|重新生成|重试|继续|恢复|再试一次/i;
+  const VERSION = "0.4.1";
+  const ERROR_RE = /failed to fetch|network|offline|connection|timed out|timeout|upstream|temporarily unavailable|service unavailable|\u4e2d\u65ad|\u7f51\u7edc|\u8fde\u63a5|\u8d85\u65f6|\u4e0a\u6e38|\u4e0d\u53ef\u7528|\u5931\u8d25|\u91cd\u8bd5/i;
+  const RESUME_RE = /^(retry|try again|retry response|regenerate|continue|resume|\u91cd\u65b0\u751f\u6210|\u91cd\u8bd5|\u7ee7\u7eed|\u6062\u590d|\u518d\u8bd5\u4e00\u6b21)$/i;
+  const RESUME_HINT_RE = /retry|try again|regenerate|continue|resume|\u91cd\u65b0\u751f\u6210|\u91cd\u8bd5|\u7ee7\u7eed|\u6062\u590d|\u518d\u8bd5\u4e00\u6b21/i;
+  const USER_PREFIX_RE = /^(?:\u4f60\u8bf4\s*[\uff1a:]|you said\s*:)/i;
 
   function readSavedState() {
     try {
@@ -66,7 +68,7 @@ author: AI.INPUT.IM Status Monitor
       const exact = RESUME_RE.test(label);
       const nearby = cleanText(element.parentElement?.textContent);
       const errorContext = ERROR_RE.test(nearby);
-      const genericContinue = /^(continue|resume|继续|恢复)$/i.test(label);
+      const genericContinue = /^(continue|resume|\u7ee7\u7eed|\u6062\u590d)$/i.test(label);
       if (genericContinue && !errorContext) return null;
       const score = (exact ? 5 : 2) + (errorContext ? 4 : 0);
       return { element, label, score };
@@ -82,25 +84,50 @@ author: AI.INPUT.IM Status Monitor
     return alerts.some((element) => ERROR_RE.test(cleanText(element.textContent)));
   }
 
+  function selectedTaskKey(documentRef, parsedUrl) {
+    const selected = documentRef.querySelector?.("[aria-current='page']");
+    for (let node = selected, depth = 0; node && depth < 6; node = node.parentElement, depth += 1) {
+      const href = node.getAttribute?.("href");
+      if (href) {
+        try { const selectedUrl = new URL(href, parsedUrl); const id = selectedUrl.searchParams.get("threadId") || selectedUrl.searchParams.get("conversationId") || selectedUrl.searchParams.get("taskId"); if (id) return `id:${id}`; if (selectedUrl.pathname && selectedUrl.pathname !== "/" && selectedUrl.pathname !== "/index.html") return `path:${selectedUrl.pathname}${selectedUrl.search}`; } catch {}
+      }
+      for (const name of ["data-thread-id", "data-conversation-id", "data-task-id", "data-id"]) { const value = cleanText(node.getAttribute?.(name)); if (value) return `${name}:${value}`; }
+    }
+    const title = cleanText(selected?.innerText || selected?.textContent).replace(/\s+(?:waiting for approval|\u7b49\u5f85\u6279\u51c6)$/i, "");
+    if (!title) return null;
+    const workspace = cleanText(documentRef.querySelector?.("[data-workspace-id]")?.getAttribute?.("data-workspace-id") || documentRef.querySelector?.("[data-project-id]")?.getAttribute?.("data-project-id") || parsedUrl.host);
+    return `title:${workspace}:${title}`;
+  }
+
+  function latestUserMessage(documentRef) {
+    const scope = documentRef.querySelector?.("main") || documentRef.body || documentRef;
+    const explicit = [...scope.querySelectorAll?.("[data-local-conversation-user-anchor='true'],[data-message-author='user'],[data-role='user'],[aria-label^='You said'],[aria-label^='\u4f60\u8bf4']") || []];
+    const semantic = [...scope.querySelectorAll?.("article,section,div") || []].filter((node) => {
+      if (isPluginElement(node)) return false;
+      const text = cleanText(node.innerText || node.textContent);
+      if (!USER_PREFIX_RE.test(text) || text.length > 10000) return false;
+      return ![...(node.children || [])].some((child) => USER_PREFIX_RE.test(cleanText(child.innerText || child.textContent)));
+    });
+    const candidates = [...new Set([...explicit, ...semantic])].filter((node) => !isPluginElement(node));
+    const ordered = candidates.sort((a, b) => { if (a === b) return 0; const position = a.compareDocumentPosition?.(b) || 0; return position & 4 ? -1 : position & 2 ? 1 : 0; });
+    const last = ordered.at(-1);
+    const text = cleanText(last?.innerText || last?.textContent);
+    return text ? cleanText(text.replace(USER_PREFIX_RE, "")).slice(0, 2000) : null;
+  }
+
   function checkpoint(documentRef = document) {
     const url = location.href;
-    const threadKey = new URL(url).searchParams.get("threadId")
-      || new URL(url).searchParams.get("conversationId")
-      || url;
-    const messages = [...documentRef.querySelectorAll(
-      "[data-local-conversation-user-anchor='true'],[data-message-author='user'],[data-role='user'],[role='article']"
-    )].map((node) => cleanText(node.innerText || node.textContent)).filter(Boolean);
-    return {
-      threadKey,
-      url,
-      lastUserMessage: messages.at(-1)?.slice(0, 2000) || null,
-      savedAt: Date.now()
-    };
+    const parsedUrl = new URL(url);
+    const explicitId = parsedUrl.searchParams.get("threadId") || parsedUrl.searchParams.get("conversationId") || parsedUrl.searchParams.get("taskId");
+    const pathKey = parsedUrl.pathname && parsedUrl.pathname !== "/" && parsedUrl.pathname !== "/index.html" ? `path:${parsedUrl.pathname}${parsedUrl.search}` : null;
+    return { threadKey: explicitId ? `id:${explicitId}` : pathKey || selectedTaskKey(documentRef, parsedUrl), url, lastUserMessage: latestUserMessage(documentRef), savedAt: Date.now() };
   }
 
   if (globalThis.__CODEX_TASK_RECOVERY_TEST__) {
     globalThis.__codexTaskRecoveryTestHooks = {
       checkpoint,
+      latestUserMessage,
+      selectedTaskKey,
       findResumeButton,
       hasRecoverySignal
     };
@@ -109,6 +136,9 @@ author: AI.INPUT.IM Status Monitor
 
   window[API_KEY]?.dispose?.();
   const saved = readSavedState();
+  const savedCheckpoint = saved.checkpoint?.threadKey === "app://-/index.html"
+    ? null
+    : saved.checkpoint;
   const state = {
     enabled: saved.enabled !== false,
     collapsed: saved.collapsed !== false,
@@ -120,7 +150,7 @@ author: AI.INPUT.IM Status Monitor
     attempts: 0,
     lastAttemptAt: 0,
     lastError: null,
-    checkpoint: null,
+    checkpoint: savedCheckpoint || null,
     timer: null,
     bootstrapTimer: null,
     lastCheckpointAt: 0,
@@ -160,6 +190,8 @@ author: AI.INPUT.IM Status Monitor
       && previous.threadKey === next.threadKey
       && previous.url === next.url
       && previous.lastUserMessage === next.lastUserMessage) return false;
+    if (!next.threadKey || !next.lastUserMessage) return false;
+    if (previous?.threadKey !== next.threadKey) state.attempts = 0;
     state.checkpoint = next;
     persist();
     return true;
@@ -306,6 +338,7 @@ author: AI.INPUT.IM Status Monitor
     const signal = hasRecoverySignal(document);
     const candidate = findResumeButton(document);
     if (!signal) {
+      state.attempts = 0;
       if (state.phase !== "recovering") state.phase = "watching";
       safeRender();
       return;
@@ -363,7 +396,7 @@ author: AI.INPUT.IM Status Monitor
     if (state.offlineHandler) window.removeEventListener("offline", state.offlineHandler);
     document.getElementById(ROOT_ID)?.remove();
     document.getElementById(STYLE_ID)?.remove();
-    if (window[API_KEY]?.version === "0.4.0") delete window[API_KEY];
+    if (window[API_KEY]?.version === VERSION) delete window[API_KEY];
   }
 
   function schedule() {
@@ -394,7 +427,7 @@ author: AI.INPUT.IM Status Monitor
   }
 
   window[API_KEY] = {
-    version: "0.4.0",
+    version: VERSION,
     getState: () => ({ ...state, timer: undefined }),
     saveCheckpoint,
     resume: () => resume(true),

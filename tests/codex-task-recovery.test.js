@@ -3,7 +3,7 @@ const fs = require("node:fs");
 const vm = require("node:vm");
 
 const source = fs.readFileSync("codex-plus-plus/codex-task-recovery.js", "utf8");
-assert.match(source, /version: 0\.4\.0/);
+assert.match(source, /version: 0\.4\.1/);
 assert.match(source, /data-local-conversation-user-anchor/);
 assert.equal(source.includes("new MutationObserver"), false);
 assert.equal(source.includes("body?.innerText"), false);
@@ -40,8 +40,44 @@ assert.equal(typeof hooks.findResumeButton, "function");
 assert.equal(typeof hooks.hasRecoverySignal, "function");
 
 const checkpoint = hooks.checkpoint(context.document);
-assert.equal(checkpoint.threadKey, "thread-123");
+assert.equal(checkpoint.threadKey, "id:thread-123");
 assert.equal(checkpoint.lastUserMessage, "Original task request");
+function node(text, order) {
+  return {
+    innerText: text,
+    children: [],
+    getAttribute() { return null; },
+    compareDocumentPosition(other) { return order < other.order ? 4 : 2; },
+    order
+  };
+}
+const oldAnchor = node("\u4f60\u8bf4\uff1a \u87ba\u65cb\u6321\u677f", 1);
+const latestTurn = node("\u4f60\u8bf4\uff1a \u4fee\u590d Codex++ \u5f53\u524d\u4efb\u52a1\u8bc6\u522b", 2);
+const main = {
+  querySelectorAll(selector) {
+    if (selector.includes("data-local-conversation")) return [oldAnchor];
+    if (selector === "article,section,div") return [oldAnchor, latestTurn];
+    return [];
+  }
+};
+const selected = {
+  innerText: "\u5f00\u53d1\u6d4f\u89c8\u5668\u63d2\u4ef6 \u7b49\u5f85\u6279\u51c6",
+  parentElement: null,
+  getAttribute() { return null; }
+};
+const virtualizedDocument = {
+  body: main,
+  querySelector(selector) {
+    if (selector === "main") return main;
+    if (selector === "[aria-current='page']") return selected;
+    return null;
+  }
+};
+context.location.href = "app://-/index.html";
+const virtualizedCheckpoint = hooks.checkpoint(virtualizedDocument);
+assert.equal(virtualizedCheckpoint.threadKey, "title:-:\u5f00\u53d1\u6d4f\u89c8\u5668\u63d2\u4ef6");
+assert.equal(virtualizedCheckpoint.lastUserMessage, "\u4fee\u590d Codex++ \u5f53\u524d\u4efb\u52a1\u8bc6\u522b");
+assert.equal(virtualizedCheckpoint.lastUserMessage.includes("\u87ba\u65cb\u6321\u677f"), false);
 
 const retryButton = {
   disabled: false,

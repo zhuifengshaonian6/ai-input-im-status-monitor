@@ -55,8 +55,8 @@ async function main() {
   await page.addScriptTag({ path: path.join(root, "codex-plus-plus", "codex-status-suite.js") });
   await page.waitForFunction(() =>
     window.__inputStatusAutoSwitch?.version === "0.4.0" &&
-    window.__codexTaskRecovery?.version === "0.4.0" &&
-    window.__codexStatusSuite?.version === "0.5.0"
+    window.__codexTaskRecovery?.version === "0.4.1" &&
+    window.__codexStatusSuite?.version === "0.5.1"
   );
   await page.waitForFunction(() =>
     document.querySelector("#codex-status-suite #input-status-auto-switch") &&

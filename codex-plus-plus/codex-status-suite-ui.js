@@ -7,6 +7,7 @@
   const STORAGE_KEY = "codexStatusSuite.v1";
   const AUTO_ID = "input-status-auto-switch";
   const RECOVERY_ID = "codex-task-recovery";
+  const VERSION = "0.5.1";
 
   window[API_KEY]?.dispose?.();
 
@@ -47,6 +48,7 @@
       #${ROOT_ID} .css-shell{border:1px solid rgba(255,255,255,.14);border-radius:8px;background:#171a21;box-shadow:0 16px 40px rgba(0,0,0,.35);overflow:hidden}
       #${ROOT_ID} .css-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.09)}
       #${ROOT_ID} .css-brand{display:flex;align-items:center;gap:8px;font-weight:800}
+      #${ROOT_ID} .css-version{color:#7f8a99;font:10px ui-monospace,Consolas,monospace;font-weight:600}
       #${ROOT_ID} .css-brand::before{content:"";width:9px;height:9px;border-radius:50%;background:#35d07f;box-shadow:0 0 0 3px rgba(53,208,127,.16)}
       #${ROOT_ID} .css-actions{display:flex;align-items:center;gap:6px}
       #${ROOT_ID} button{min-height:28px;border:1px solid rgba(255,255,255,.14);border-radius:6px;background:#1e232c;color:#f1f4f8;padding:0 9px;cursor:pointer}
@@ -78,7 +80,7 @@
     root.innerHTML = `
       <section class="css-shell">
         <header class="css-head">
-          <span class="css-brand">AI.INPUT.IM</span>
+          <span class="css-brand">AI.INPUT.IM <span class="css-version">v${VERSION}</span></span>
           <div class="css-actions">
             <button type="button" class="css-icon" data-suite-settings title="Settings" aria-label="Settings">&#9881;</button>
             <button type="button" class="css-icon" data-suite-collapse title="Collapse" aria-label="Collapse">&#8722;</button>
@@ -160,11 +162,11 @@
     if (recoveryRoot) document.body.appendChild(recoveryRoot);
     root?.remove();
     document.getElementById(STYLE_ID)?.remove();
-    if (window[API_KEY]?.version === "0.5.0") delete window[API_KEY];
+    if (window[API_KEY]?.version === VERSION) delete window[API_KEY];
   }
 
   window[API_KEY] = {
-    version: "0.5.0",
+    version: VERSION,
     getState: () => ({ ...state, timer: undefined }),
     selectTab(tab) {
       state.activeTab = tab === "recovery" ? "recovery" : "models";

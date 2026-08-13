@@ -14,7 +14,7 @@ $header = @"
 @codex-plus-script
 name: AI.INPUT.IM Codex Status Suite
 description: Monitor model health, switch to the first healthy model, and resume interrupted Codex tasks.
-version: 0.5.0
+version: 0.5.1
 author: AI.INPUT.IM Status Monitor
 */
 
