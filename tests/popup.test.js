@@ -38,6 +38,7 @@ const context = {
   __STATUS_POPUP_TEST__: true,
   chrome: {
     runtime: {
+      getManifest: () => ({ version: "1.4.0" }),
       sendMessage: async () => ({ ok: false }),
       openOptionsPage() {}
     }
@@ -70,4 +71,15 @@ assert.equal(elements.get("servicesCount").textContent, "1/6");
 assert.equal(rows[0].children[0].children[0].textContent, "sol");
 assert.equal(rows[1].children[1].className, "dot unknown");
 
+context.__statusPopupTestHooks.renderUpdate({
+  currentVersion: "1.4.0",
+  latestVersion: "1.5.0",
+  updateAvailable: true,
+  downloadUrl: "https://example.test/update.zip",
+  checkedAt: Date.now(),
+  error: null
+});
+assert.equal(elements.get("currentVersion").textContent, "v1.4.0");
+assert.equal(elements.get("downloadUpdateLink").hidden, false);
+assert.equal(elements.get("downloadUpdateLink").href, "https://example.test/update.zip");
 console.log("popup tests passed");

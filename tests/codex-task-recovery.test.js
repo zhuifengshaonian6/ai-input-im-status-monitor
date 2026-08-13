@@ -3,12 +3,15 @@ const fs = require("node:fs");
 const vm = require("node:vm");
 
 const source = fs.readFileSync("codex-plus-plus/codex-task-recovery.js", "utf8");
-assert.match(source, /version: 0\.3\.0/);
+assert.match(source, /version: 0\.4\.0/);
+assert.match(source, /data-local-conversation-user-anchor/);
 assert.equal(source.includes("new MutationObserver"), false);
 assert.equal(source.includes("body?.innerText"), false);
 assert.match(source, /removeEventListener\("online"/);
 assert.match(source, /state\.bootstrapTimer = setTimeout\(start, 1000\)/);
 assert.match(source, /Checkpoint remains available in memory/);
+assert.match(source, /data-settings-toggle/);
+assert.match(source, /updateSettings\(settings = \{\}\)/);
 const context = {
   __CODEX_TASK_RECOVERY_TEST__: true,
   console,
@@ -18,7 +21,7 @@ const context = {
   document: {
     body: {
       querySelectorAll(selector) {
-        return selector.includes("[data-role='user']")
+        return selector.includes("[data-local-conversation-user-anchor")
           ? [{ innerText: "Original task request" }]
           : [];
       }

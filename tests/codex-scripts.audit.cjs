@@ -49,13 +49,14 @@ async function auditAutoSwitch(browser, root) {
   await page.addScriptTag({
     path: path.join(root, "codex-plus-plus", "status-model-auto-switch.js")
   });
-  await page.waitForFunction(() => window.__inputStatusAutoSwitch?.version === "0.3.0");
+  await page.waitForFunction(() => window.__inputStatusAutoSwitch?.version === "0.4.0");
   await page.evaluate(() => window.__inputStatusAutoSwitch.check());
   await page.waitForFunction(() => window.__selectedModel?.model === "gpt-5.6-terra");
   const result = await page.evaluate(() => ({
     selected: window.__selectedModel,
     collapsed: document.querySelector("#input-status-auto-switch")?.dataset.collapsed,
-    version: window.__inputStatusAutoSwitch.version
+    version: window.__inputStatusAutoSwitch.version,
+    settingsButton: Boolean(document.querySelector("#input-status-auto-switch [data-settings-toggle]"))
   }));
   await page.evaluate(() => window.__inputStatusAutoSwitch.dispose());
   if (await page.locator("#input-status-auto-switch").count()) {
@@ -83,7 +84,7 @@ async function auditTaskRecovery(browser, root) {
   await page.addScriptTag({
     path: path.join(root, "codex-plus-plus", "codex-task-recovery.js")
   });
-  await page.waitForFunction(() => window.__codexTaskRecovery?.version === "0.3.0");
+  await page.waitForFunction(() => window.__codexTaskRecovery?.version === "0.4.0");
   await page.waitForFunction(() => window.__retryClicks > 0, null, { timeout: 8000 }).catch(async () => {
     const diagnostics = await page.evaluate(() => {
       const button = document.querySelector("button");
@@ -104,7 +105,8 @@ async function auditTaskRecovery(browser, root) {
     clicks: window.__retryClicks,
     checkpoint: window.__codexTaskRecovery.getState().checkpoint?.lastUserMessage,
     collapsed: document.querySelector("#codex-task-recovery")?.dataset.collapsed,
-    version: window.__codexTaskRecovery.version
+    version: window.__codexTaskRecovery.version,
+    settingsButton: Boolean(document.querySelector("#codex-task-recovery [data-settings-toggle]"))
   }));
   await page.evaluate(() => window.__codexTaskRecovery.dispose());
   if (await page.locator("#codex-task-recovery").count()) {

@@ -3,10 +3,12 @@ const fs = require("node:fs");
 const vm = require("node:vm");
 
 const source = fs.readFileSync("codex-plus-plus/status-model-auto-switch.js", "utf8");
-assert.match(source, /version: 0\.3\.0/);
+assert.match(source, /version: 0\.4\.0/);
 assert.match(source, /if \(state\.inFlight\) return state\.inFlight/);
 assert.match(source, /state\.bootstrapTimer = setTimeout\(start, 1000\)/);
 assert.match(source, /Continue in memory when the host disables storage/);
+assert.match(source, /updateSettings\(settings = \{\}\)/);
+assert.match(source, /data-settings-toggle/);
 const context = {
   __CODEX_STATUS_TEST__: true,
   console,

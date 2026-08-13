@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "AI.INPUT.IM Status Monitor",
   "description": "Monitor status.input.im model health and notify on model status changes.",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "action": {
     "default_title": "AI.INPUT.IM Status",
     "default_popup": "popup.html",
@@ -29,6 +29,7 @@
     "storage"
   ],
   "host_permissions": [
-    "https://status.input.im/*"
+    "https://status.input.im/*",
+    "https://api.github.com/repos/zhuifengshaonian6/ai-input-im-status-monitor/*"
   ]
 }

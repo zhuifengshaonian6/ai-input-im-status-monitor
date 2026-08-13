@@ -18,7 +18,7 @@
 
 浏览器扩展负责读取状态、展示统计并发送通知。浏览器扩展本身无法控制 Codex 桌面应用中的当前会话模型；真正的模型切换由项目中的 Codex++ 用户脚本完成：
 
-`codex-plus-plus/status-model-auto-switch.js`
+`codex-plus-plus/codex-status-suite.js`
 
 脚本按以下顺序选择状态源中第一个明确健康、且 Codex 当前版本实际提供的模型：
 
@@ -52,8 +52,7 @@
 - [查看 Releases](https://github.com/zhuifengshaonian6/ai-input-im-status-monitor/releases)
 - [下载浏览器扩展发布包](https://github.com/zhuifengshaonian6/ai-input-im-status-monitor/releases/latest/download/ai-input-im-status-monitor-extension.zip)
 - [下载 Codex++ 脚本包](https://github.com/zhuifengshaonian6/ai-input-im-status-monitor/releases/latest/download/ai-input-im-status-monitor-codex-plus-plus.zip)
-- [直接下载自动切换脚本](https://raw.githubusercontent.com/zhuifengshaonian6/ai-input-im-status-monitor/main/codex-plus-plus/status-model-auto-switch.js)
-- [直接下载任务恢复脚本](https://raw.githubusercontent.com/zhuifengshaonian6/ai-input-im-status-monitor/main/codex-plus-plus/codex-task-recovery.js)
+- [直接下载 Codex++ 合并脚本](https://raw.githubusercontent.com/zhuifengshaonian6/ai-input-im-status-monitor/main/codex-plus-plus/codex-status-suite.js)
 
 `main.zip` 会随 `main` 分支更新自动指向最新版。下载并解压后，在 Chrome 或 Edge 的扩展管理页面选择包含 `manifest.json` 的目录即可。
 
@@ -70,23 +69,18 @@
 
 Windows 与 macOS 的步骤相同，仅文件夹选择界面略有不同。
 
-### 在 Codex++ 中启用自动切换
+### 在 Codex++ 中启用状态套件
 
 1. 打开 Codex++ 的用户脚本管理页面。
-2. 导入 `codex-plus-plus/status-model-auto-switch.js`。
+2. 导入 `codex-plus-plus/codex-status-suite.js`。
 3. 启用脚本并重启 Codex++。
 4. 首次使用时打开一次 Codex 原生模型菜单，让脚本发现当前版本的原生模型选择接口。
 5. 查看右下角面板：`AUTO` 表示正在自动检查，`PAUSED` 表示已暂停。
+6. 点击两个面板中的设置按钮，可配置模型顺序、检查间隔、确认次数、检查点间隔和自动恢复次数。
 
 Codex++ 内置脚本依赖其宿主页面结构。Codex 或 Codex++ 升级后若出现“Open the native model menu once to enable switching”，先重新打开一次原生模型菜单；仍无法识别时需要更新兼容选择器。
 
-### 在 Codex++ 中启用任务恢复
-
-1. 下载并导入 `codex-plus-plus/codex-task-recovery.js`。
-2. 启用脚本并重启 Codex++。
-3. 脚本会每 30 秒保存一次当前任务检查点。
-4. 发生网络或上游中断时，脚本只查找 Codex 原生的 Retry/Continue 操作；网络恢复后最多自动尝试 3 次。
-5. 右下角面板默认折叠，点击状态点可展开。
+同一个状态套件还会每 30 秒保存一次当前任务检查点。发生网络或上游中断时，它只查找 Codex 原生的 Retry/Continue 操作；网络恢复后默认最多自动尝试 3 次。
 
 脚本不会重发用户提示词，不创建新任务，也不读写 provider、API Key 或 `config.toml`。它只点击当前页面已经出现的原生恢复按钮；没有可确认的异常提示时不会自动点击普通的 Continue 按钮。
 
@@ -96,12 +90,11 @@ Codex++ 内置脚本依赖其宿主页面结构。Codex 或 Codex++ 升级后若
 
 ```text
 从 https://github.com/zhuifengshaonian6/ai-input-im-status-monitor 下载最新版本。
-安装浏览器扩展发布包，并将以下两个文件导入 Codex++ 用户脚本：
-- codex-plus-plus/status-model-auto-switch.js
-- codex-plus-plus/codex-task-recovery.js
+安装浏览器扩展发布包，并将以下文件导入 Codex++ 用户脚本：
+- codex-plus-plus/codex-status-suite.js
 
 安装前备份 Codex++ 用户脚本配置；不要修改 provider、API Key、base_url 或 ~/.codex/config.toml；
-不要禁用现有脚本；仅追加并启用这两个脚本。安装后先运行语法检查，再启动验证。
+不要禁用现有脚本；仅追加并启用这个合并脚本。安装后先运行语法检查，再启动验证。
 ```
 
 详细步骤见 [部署指南](docs/DEPLOYMENT.md)。
@@ -148,6 +141,7 @@ git clone https://github.com/zhuifengshaonian6/ai-input-im-status-monitor.git
 | `notifications` | 在状态变化时发送系统通知 |
 | `storage` | 在浏览器本地保存设置、状态和统计 |
 | `https://status.input.im/*` | 读取状态接口 |
+| `https://api.github.com/repos/zhuifengshaonian6/ai-input-im-status-monitor/*` | 检查公开 Release 版本并提供新版下载入口 |
 
 扩展不收集账号、浏览记录或页面内容，也不会把本地数据发送给开发者。完整说明见 [PRIVACY.md](PRIVACY.md)。
 

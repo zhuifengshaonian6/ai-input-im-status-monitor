@@ -15,6 +15,7 @@ const context = {
     },
     notifications: { create: async () => {} },
     runtime: {
+      getManifest: () => ({ version: "1.4.0" }),
       onInstalled: listener,
       onStartup: listener,
       onMessage: listener
@@ -38,12 +39,16 @@ const context = {
 
 vm.createContext(context);
 vm.runInContext(
-  `${source}\n;globalThis.testHooks = { selectService, processSample, validateStatusData };`,
+  `${source}\n;globalThis.testHooks = { selectService, processSample, validateStatusData, compareVersions };`,
   context
 );
 
-const { selectService, processSample, validateStatusData } = context.testHooks;
+const { selectService, processSample, validateStatusData, compareVersions } = context.testHooks;
 const priority = ["sol", "terra", "luna"];
+
+assert.ok(compareVersions("1.4.0", "1.3.0") > 0);
+assert.equal(compareVersions("v1.4.0", "1.4.0"), 0);
+assert.ok(compareVersions("1.3.9", "1.4.0") < 0);
 
 assert.equal(
   selectService([

@@ -1,6 +1,6 @@
 # 隐私说明
 
-最后更新：2026-08-12
+最后更新：2026-08-13
 
 AI.INPUT.IM Status Monitor 是一个在浏览器本地运行的状态监控扩展。
 
@@ -20,7 +20,7 @@ AI.INPUT.IM Status Monitor 是一个在浏览器本地运行的状态监控扩�
 
 ## 网络请求
 
-扩展会按配置间隔向 `https://status.input.im/api/status` 发起请求，以读取公开的模型状态数据。该请求受数据源自身的隐私政策和服务规则约束。
+扩展会按配置间隔向 `https://status.input.im/api/status` 发起请求，以读取公开的模型状态数据。扩展还会向 GitHub Release API 请求本项目的公开版本元数据，用于显示当前版本并检查更新。这些请求不会携带扩展保存的模型状态、统计数据或用户内容。相关请求受数据源自身的隐私政策和服务规则约束。
 
 ## 系统通知
 
@@ -32,6 +32,7 @@ AI.INPUT.IM Status Monitor 是一个在浏览器本地运行的状态监控扩�
 - `notifications`：显示状态变化通知
 - `storage`：保存本地设置和统计
 - `https://status.input.im/*`：访问状态数据源
+- `https://api.github.com/repos/zhuifengshaonian6/ai-input-im-status-monitor/*`：读取公开 Release 版本元数据
 
 ## 变更
 

@@ -49,12 +49,33 @@ async function main() {
     });
     page.on("pageerror", (error) => errors.push(error.message));
     await page.goto(`chrome-extension://${extensionId}/popup.html`);
+    await page.waitForFunction(
+      () => document.querySelector("#currentVersion")?.textContent === "v1.4.0",
+      null,
+      { timeout: 10_000 }
+    );
     await page.click("#refreshBtn");
     await page.waitForFunction(
       () => document.querySelector("#servicesCount")?.textContent === "6/6",
       null,
       { timeout: 20_000 }
     );
+    await page.click("#checkUpdateBtn");
+    await page.waitForFunction(
+      () => {
+        const status = document.querySelector("#updateStatus")?.textContent;
+        return status && status !== "尚未检查更新" && status !== "正在检查...";
+      },
+      null,
+      { timeout: 20_000 }
+    ).catch(async (error) => {
+      const diagnostics = await page.evaluate(async () => ({
+        status: document.querySelector("#updateStatus")?.textContent,
+        disabled: document.querySelector("#checkUpdateBtn")?.disabled,
+        dashboard: await chrome.runtime.sendMessage({ type: "getDashboard" }).catch((item) => ({ error: String(item) }))
+      }));
+      throw new Error(`Update timeout: ${JSON.stringify(diagnostics)} | ${error.message}`);
+    });
     await page.waitForTimeout(1000);
 
     const result = await page.evaluate(() => ({
@@ -63,6 +84,8 @@ async function main() {
       status: document.querySelector("#statusPill")?.textContent,
       source: document.querySelector("#sourceStatus")?.textContent,
       services: document.querySelector("#servicesCount")?.textContent,
+      version: document.querySelector("#currentVersion")?.textContent,
+      updateStatus: document.querySelector("#updateStatus")?.textContent,
       bodyWidth: document.body.scrollWidth,
       viewportWidth: innerWidth,
       bodyHeight: document.body.scrollHeight,
@@ -75,6 +98,10 @@ async function main() {
     if (errors.length) throw new Error(`Browser errors: ${errors.join(" | ")}`);
     if (result.source !== "读取正常") throw new Error(`Status source: ${result.source}`);
     if (result.services !== "6/6") throw new Error(`Service count: ${result.services}`);
+    if (result.version !== "v1.4.0") throw new Error(`Extension version: ${result.version}`);
+    if (!result.updateStatus || result.updateStatus.includes("检查失败")) {
+      throw new Error(`Update check: ${result.updateStatus}`);
+    }
     if (result.bodyWidth > result.viewportWidth) throw new Error("Popup has horizontal overflow");
     console.log(JSON.stringify(result, null, 2));
   } finally {

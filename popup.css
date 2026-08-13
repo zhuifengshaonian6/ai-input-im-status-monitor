@@ -335,6 +335,64 @@ dd {
   background: rgba(23, 26, 33, 0.9);
 }
 
+.update-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(23, 26, 33, 0.9);
+}
+
+.update-panel > div:first-child {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 3px 8px;
+  align-items: baseline;
+}
+
+.version-label,
+.update-panel small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.update-panel small {
+  grid-column: 1 / -1;
+}
+
+.update-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.update-actions button,
+.update-actions a {
+  min-height: 32px;
+  padding: 0 9px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--text);
+  background: var(--surface-2);
+  font-size: 11px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.update-actions a {
+  display: inline-flex;
+  align-items: center;
+  border-color: rgba(102, 217, 232, 0.45);
+  color: var(--cyan);
+}
+
+.update-actions a[hidden] {
+  display: none;
+}
+
 .services {
   display: grid;
   gap: 8px;

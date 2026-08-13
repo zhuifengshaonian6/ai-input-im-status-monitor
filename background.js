@@ -20,6 +20,9 @@ const STORAGE_KEYS = {
   snapshot: "snapshot"
 };
 const REQUEST_TIMEOUT_MS = 15_000;
+const UPDATE_ALARM = "release-update-check";
+const UPDATE_API_URL = "https://api.github.com/repos/zhuifengshaonian6/ai-input-im-status-monitor/releases/latest";
+const UPDATE_DOWNLOAD_URL = "https://github.com/zhuifengshaonian6/ai-input-im-status-monitor/releases/latest/download/ai-input-im-status-monitor-extension.zip";
 
 async function storageGet(keys) {
   return await chrome.storage.local.get(keys);
@@ -121,6 +124,63 @@ async function fetchStatus(url, timeoutMs = REQUEST_TIMEOUT_MS) {
   } catch (error) {
     if (error?.name === "AbortError") throw new Error("状态接口请求超时");
     throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function parseVersion(value) {
+  return String(value || "").replace(/^v/i, "").split(".").map((part) => Number(part) || 0);
+}
+
+function compareVersions(left, right) {
+  const a = parseVersion(left);
+  const b = parseVersion(right);
+  const length = Math.max(a.length, b.length);
+  for (let index = 0; index < length; index += 1) {
+    const difference = (a[index] || 0) - (b[index] || 0);
+    if (difference) return difference;
+  }
+  return 0;
+}
+
+async function checkForUpdate() {
+  const currentVersion = chrome.runtime.getManifest().version;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    const response = await fetch(UPDATE_API_URL, {
+      cache: "no-store",
+      headers: { Accept: "application/vnd.github+json" },
+      signal: controller.signal
+    });
+    if (!response.ok) throw new Error(`GitHub HTTP ${response.status}`);
+    const release = await response.json();
+    const latestVersion = String(release.tag_name || "").replace(/^v/i, "");
+    if (!latestVersion) throw new Error("GitHub Release 未返回版本号");
+    const result = {
+      currentVersion,
+      latestVersion,
+      updateAvailable: compareVersions(latestVersion, currentVersion) > 0,
+      releaseUrl: release.html_url,
+      downloadUrl: UPDATE_DOWNLOAD_URL,
+      checkedAt: Date.now(),
+      error: null
+    };
+    await storageSet({ updateState: result });
+    return result;
+  } catch (error) {
+    const result = {
+      currentVersion,
+      latestVersion: null,
+      updateAvailable: false,
+      releaseUrl: null,
+      downloadUrl: UPDATE_DOWNLOAD_URL,
+      checkedAt: Date.now(),
+      error: error?.name === "AbortError" ? "版本检查超时" : String(error?.message || error)
+    };
+    await storageSet({ updateState: result });
+    return result;
   } finally {
     clearTimeout(timeout);
   }
@@ -466,6 +526,8 @@ async function scheduleAlarm() {
   await chrome.alarms.create("status-poll", {
     periodInMinutes: Math.max(1, Number(config.intervalMinutes || 1))
   });
+  await chrome.alarms.clear(UPDATE_ALARM);
+  await chrome.alarms.create(UPDATE_ALARM, { periodInMinutes: 24 * 60 });
 }
 
 chrome.runtime.onInstalled.addListener(async () => {
@@ -484,6 +546,7 @@ chrome.runtime.onStartup.addListener(async () => {
 
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === "status-poll") fetchAndProcess();
+  if (alarm.name === UPDATE_ALARM) checkForUpdate();
 });
 
 chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
@@ -496,7 +559,24 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
       const config = await getConfig();
       const state = await getState();
       const stored = await storageGet(STORAGE_KEYS.snapshot);
-      sendResponse({ ok: true, config, state, snapshot: stored[STORAGE_KEYS.snapshot] || null });
+      const updateStored = await storageGet("updateState");
+      sendResponse({
+        ok: true,
+        config,
+        state,
+        snapshot: stored[STORAGE_KEYS.snapshot] || null,
+        updateState: updateStored.updateState || {
+          currentVersion: chrome.runtime.getManifest().version,
+          latestVersion: null,
+          updateAvailable: false,
+          checkedAt: null,
+          error: null
+        }
+      });
+      return;
+    }
+    if (request?.type === "checkForUpdate") {
+      sendResponse({ ok: true, updateState: await checkForUpdate() });
       return;
     }
     if (request?.type === "saveConfig") {

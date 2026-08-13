@@ -2,7 +2,7 @@
 @codex-plus-script
 name: Codex Task Recovery
 description: Preserve task checkpoints and safely resume the current Codex task after network or upstream interruptions.
-version: 0.3.0
+version: 0.4.0
 author: AI.INPUT.IM Status Monitor
 */
 
@@ -13,10 +13,10 @@ author: AI.INPUT.IM Status Monitor
   const STYLE_ID = "codex-task-recovery-style";
   const ROOT_ID = "codex-task-recovery";
   const STORAGE_KEY = "codexTaskRecovery.v1";
-  const POLL_MS = 5000;
-  const CHECKPOINT_MS = 30_000;
-  const RETRY_COOLDOWN_MS = 12_000;
-  const MAX_AUTO_ATTEMPTS = 3;
+  const DEFAULT_POLL_SECONDS = 5;
+  const DEFAULT_CHECKPOINT_SECONDS = 30;
+  const DEFAULT_RETRY_SECONDS = 12;
+  const DEFAULT_MAX_ATTEMPTS = 3;
   const ERROR_RE = /failed to fetch|network|offline|connection|timed out|timeout|upstream|temporarily unavailable|service unavailable|中断|网络|连接|超时|上游|不可用|失败|重试/i;
   const RESUME_RE = /^(retry|try again|retry response|regenerate|continue|resume|重新生成|重试|继续|恢复|再试一次)$/i;
   const RESUME_HINT_RE = /retry|try again|regenerate|continue|resume|重新生成|重试|继续|恢复|再试一次/i;
@@ -27,6 +27,11 @@ author: AI.INPUT.IM Status Monitor
     } catch {
       return {};
     }
+  }
+
+  function clampNumber(value, min, max, fallback) {
+    const number = Number(value);
+    return Number.isFinite(number) ? Math.min(max, Math.max(min, Math.round(number))) : fallback;
   }
 
   function cleanText(value) {
@@ -83,7 +88,7 @@ author: AI.INPUT.IM Status Monitor
       || new URL(url).searchParams.get("conversationId")
       || url;
     const messages = [...documentRef.querySelectorAll(
-      "[data-message-author='user'],[data-role='user'],[role='article']"
+      "[data-local-conversation-user-anchor='true'],[data-message-author='user'],[data-role='user'],[role='article']"
     )].map((node) => cleanText(node.innerText || node.textContent)).filter(Boolean);
     return {
       threadKey,
@@ -107,6 +112,10 @@ author: AI.INPUT.IM Status Monitor
   const state = {
     enabled: saved.enabled !== false,
     collapsed: saved.collapsed !== false,
+    pollSeconds: clampNumber(saved.pollSeconds, 3, 60, DEFAULT_POLL_SECONDS),
+    checkpointSeconds: clampNumber(saved.checkpointSeconds, 10, 600, DEFAULT_CHECKPOINT_SECONDS),
+    retrySeconds: clampNumber(saved.retrySeconds, 5, 300, DEFAULT_RETRY_SECONDS),
+    maxAttempts: clampNumber(saved.maxAttempts, 1, 10, DEFAULT_MAX_ATTEMPTS),
     phase: "watching",
     attempts: 0,
     lastAttemptAt: 0,
@@ -126,6 +135,10 @@ author: AI.INPUT.IM Status Monitor
     const serialized = JSON.stringify({
       enabled: state.enabled,
       collapsed: state.collapsed,
+      pollSeconds: state.pollSeconds,
+      checkpointSeconds: state.checkpointSeconds,
+      retrySeconds: state.retrySeconds,
+      maxAttempts: state.maxAttempts,
       checkpoint: state.checkpoint
     });
     if (serialized === state.lastPersisted) return;
@@ -139,7 +152,7 @@ author: AI.INPUT.IM Status Monitor
 
   function saveCheckpoint() {
     const now = Date.now();
-    if (state.lastCheckpointAt && now - state.lastCheckpointAt < CHECKPOINT_MS) return false;
+    if (state.lastCheckpointAt && now - state.lastCheckpointAt < state.checkpointSeconds * 1000) return false;
     state.lastCheckpointAt = now;
     const next = checkpoint(document);
     const previous = state.checkpoint;
@@ -164,6 +177,7 @@ author: AI.INPUT.IM Status Monitor
         #${ROOT_ID} .tr-panel{border:1px solid rgba(255,255,255,.14);border-radius:8px;background:#171a21;box-shadow:0 16px 40px rgba(0,0,0,.35);overflow:hidden}
         #${ROOT_ID} .tr-head,#${ROOT_ID} .tr-actions{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 11px}
         #${ROOT_ID} .tr-head{border-bottom:1px solid rgba(255,255,255,.09)}
+        #${ROOT_ID} .tr-head-actions{display:flex;align-items:center;gap:6px}
         #${ROOT_ID} .tr-title{font-weight:800}
         #${ROOT_ID} .tr-state{color:#66d9e8;font-size:11px}
         #${ROOT_ID} .tr-body{display:grid;gap:5px;padding:10px 11px;color:#9aa4b2;line-height:1.4}
@@ -172,6 +186,13 @@ author: AI.INPUT.IM Status Monitor
         #${ROOT_ID} button:hover{background:#292f3a}
         #${ROOT_ID} button[data-primary=true]{border-color:rgba(102,217,232,.6);color:#66d9e8}
         #${ROOT_ID} .tr-collapse{display:grid;place-items:center;width:28px;min-height:28px;padding:0;font-size:16px}
+        #${ROOT_ID} .tr-settings-toggle{display:grid;place-items:center;width:28px;min-height:28px;padding:0;font-size:15px}
+        #${ROOT_ID} .tr-settings{display:none;gap:9px;padding:11px;border-top:1px solid rgba(255,255,255,.09);font-size:11px}
+        #${ROOT_ID}[data-settings=true] .tr-settings{display:grid}
+        #${ROOT_ID} .tr-settings label{display:grid;gap:4px;color:#9aa4b2}
+        #${ROOT_ID} .tr-settings input{width:100%;border:1px solid rgba(255,255,255,.14);border-radius:6px;background:#11151b;color:#f1f4f8;padding:7px 8px;font:11px ui-monospace,Consolas,monospace}
+        #${ROOT_ID} .tr-settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+        #${ROOT_ID} .tr-settings-result{min-height:15px;color:#66d9e8}
         #${ROOT_ID} .tr-launcher{display:none;width:38px;height:38px;min-height:38px;padding:0;border-color:rgba(102,217,232,.6);border-radius:8px;background:#171a21;box-shadow:0 8px 22px rgba(0,0,0,.3)}
         #${ROOT_ID} .tr-launcher::before{content:"";width:9px;height:9px;border-radius:50%;background:#66d9e8;box-shadow:0 0 0 3px rgba(102,217,232,.16)}
         #${ROOT_ID}[data-phase=attention] .tr-launcher::before{background:#f0ad4e;box-shadow:0 0 0 3px rgba(240,173,78,.18)}
@@ -187,7 +208,7 @@ author: AI.INPUT.IM Status Monitor
       root.id = ROOT_ID;
       root.innerHTML = `
         <section class="tr-panel">
-          <div class="tr-head"><span class="tr-title">Task Recovery</span><span class="tr-state"></span><button class="tr-collapse" data-collapse aria-label="Collapse" title="Collapse">&#8722;</button></div>
+          <div class="tr-head"><span class="tr-title">Task Recovery</span><div class="tr-head-actions"><span class="tr-state"></span><button class="tr-settings-toggle" data-settings-toggle aria-label="Settings" title="Settings">&#9881;</button><button class="tr-collapse" data-collapse aria-label="Collapse" title="Collapse">&#8722;</button></div></div>
           <div class="tr-body">
             <span>Checkpoint <strong data-checkpoint>--</strong></span>
             <span data-message>Watching the current task</span>
@@ -196,6 +217,11 @@ author: AI.INPUT.IM Status Monitor
             <button data-toggle data-primary="true"></button>
             <button data-resume>Resume current task</button>
           </div>
+          <form class="tr-settings" data-settings>
+            <div class="tr-settings-grid"><label>Scan interval (seconds)<input data-poll type="number" min="3" max="60"></label><label>Checkpoint interval (seconds)<input data-checkpoint-seconds type="number" min="10" max="600"></label><label>Retry cooldown (seconds)<input data-retry type="number" min="5" max="300"></label><label>Max auto attempts<input data-attempts type="number" min="1" max="10"></label></div>
+            <button type="submit" data-primary="true">Save settings</button>
+            <span class="tr-settings-result" data-settings-result></span>
+          </form>
         </section>
         <button class="tr-launcher" data-expand aria-label="Open task recovery" title="Task recovery"></button>
       `;
@@ -216,6 +242,19 @@ author: AI.INPUT.IM Status Monitor
         render();
       });
       root.querySelector("[data-resume]").addEventListener("click", () => resume(true));
+      root.querySelector("[data-settings-toggle]").addEventListener("click", () => {
+        root.dataset.settings = String(root.dataset.settings !== "true");
+      });
+      root.querySelector("[data-settings]").addEventListener("submit", (event) => {
+        event.preventDefault();
+        state.pollSeconds = clampNumber(root.querySelector("[data-poll]").value, 3, 60, DEFAULT_POLL_SECONDS);
+        state.checkpointSeconds = clampNumber(root.querySelector("[data-checkpoint-seconds]").value, 10, 600, DEFAULT_CHECKPOINT_SECONDS);
+        state.retrySeconds = clampNumber(root.querySelector("[data-retry]").value, 5, 300, DEFAULT_RETRY_SECONDS);
+        state.maxAttempts = clampNumber(root.querySelector("[data-attempts]").value, 1, 10, DEFAULT_MAX_ATTEMPTS);
+        persist();
+        schedule();
+        root.querySelector("[data-settings-result]").textContent = "Saved";
+      });
       document.body.appendChild(root);
     }
     return root;
@@ -231,6 +270,10 @@ author: AI.INPUT.IM Status Monitor
     const collapsed = String(state.collapsed);
     if (root.dataset.collapsed !== collapsed) root.dataset.collapsed = collapsed;
     if (root.dataset.phase !== state.phase) root.dataset.phase = state.phase;
+    root.querySelector("[data-poll]").value = String(state.pollSeconds);
+    root.querySelector("[data-checkpoint-seconds]").value = String(state.checkpointSeconds);
+    root.querySelector("[data-retry]").value = String(state.retrySeconds);
+    root.querySelector("[data-attempts]").value = String(state.maxAttempts);
     const labels = {
       watching: "WATCHING",
       paused: "PAUSED",
@@ -273,7 +316,7 @@ author: AI.INPUT.IM Status Monitor
       return;
     }
     state.phase = "attention";
-    if (state.enabled && navigator.onLine && Date.now() - state.lastAttemptAt >= RETRY_COOLDOWN_MS) {
+    if (state.enabled && navigator.onLine && Date.now() - state.lastAttemptAt >= state.retrySeconds * 1000) {
       void resume(false);
     }
     safeRender(`Native recovery action found: ${candidate.label}`);
@@ -288,9 +331,9 @@ author: AI.INPUT.IM Status Monitor
       safeRender();
       return false;
     }
-    if (!manual && state.attempts >= MAX_AUTO_ATTEMPTS) {
+    if (!manual && state.attempts >= state.maxAttempts) {
       state.phase = "attention";
-      safeRender("Automatic attempts paused after 3 tries; click Resume to continue");
+      safeRender(`Automatic attempts paused after ${state.maxAttempts} tries; click Resume to continue`);
       return false;
     }
     state.attempts += 1;
@@ -320,7 +363,12 @@ author: AI.INPUT.IM Status Monitor
     if (state.offlineHandler) window.removeEventListener("offline", state.offlineHandler);
     document.getElementById(ROOT_ID)?.remove();
     document.getElementById(STYLE_ID)?.remove();
-    if (window[API_KEY]?.version === "0.3.0") delete window[API_KEY];
+    if (window[API_KEY]?.version === "0.4.0") delete window[API_KEY];
+  }
+
+  function schedule() {
+    if (state.timer) clearInterval(state.timer);
+    state.timer = setInterval(inspect, state.pollSeconds * 1000);
   }
 
   function start() {
@@ -340,19 +388,28 @@ author: AI.INPUT.IM Status Monitor
     };
     window.addEventListener("online", state.onlineHandler);
     window.addEventListener("offline", state.offlineHandler);
-    state.timer = setInterval(inspect, POLL_MS);
+    schedule();
     safeRender();
     inspect();
   }
 
   window[API_KEY] = {
-    version: "0.3.0",
+    version: "0.4.0",
     getState: () => ({ ...state, timer: undefined }),
     saveCheckpoint,
     resume: () => resume(true),
     setEnabled(enabled) {
       state.enabled = Boolean(enabled);
       persist();
+      safeRender();
+    },
+    updateSettings(settings = {}) {
+      state.pollSeconds = clampNumber(settings.pollSeconds, 3, 60, state.pollSeconds);
+      state.checkpointSeconds = clampNumber(settings.checkpointSeconds, 10, 600, state.checkpointSeconds);
+      state.retrySeconds = clampNumber(settings.retrySeconds, 5, 300, state.retrySeconds);
+      state.maxAttempts = clampNumber(settings.maxAttempts, 1, 10, state.maxAttempts);
+      persist();
+      schedule();
       safeRender();
     },
     dispose

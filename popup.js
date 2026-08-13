@@ -19,13 +19,58 @@ const els = {
   errorText: document.getElementById("errorText"),
   services: document.getElementById("services"),
   servicesCount: document.getElementById("servicesCount"),
+  currentVersion: document.getElementById("currentVersion"),
+  updateStatus: document.getElementById("updateStatus"),
+  checkUpdateBtn: document.getElementById("checkUpdateBtn"),
+  downloadUpdateLink: document.getElementById("downloadUpdateLink"),
   optionsBtn: document.getElementById("optionsBtn")
 };
+
+const UPDATE_API_URL = "https://api.github.com/repos/zhuifengshaonian6/ai-input-im-status-monitor/releases/latest";
+const UPDATE_DOWNLOAD_URL = "https://github.com/zhuifengshaonian6/ai-input-im-status-monitor/releases/latest/download/ai-input-im-status-monitor-extension.zip";
 
 function send(type, payload = {}) {
   return chrome.runtime.sendMessage({ type, ...payload });
 }
 
+function compareVersions(left, right) {
+  const parse = (value) => String(value || "").replace(/^v/i, "").split(".").map((part) => Number(part) || 0);
+  const a = parse(left);
+  const b = parse(right);
+  for (let index = 0; index < Math.max(a.length, b.length); index += 1) {
+    const difference = (a[index] || 0) - (b[index] || 0);
+    if (difference) return difference;
+  }
+  return 0;
+}
+
+async function checkForUpdate() {
+  const currentVersion = chrome.runtime.getManifest().version;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15_000);
+  try {
+    const response = await fetch(UPDATE_API_URL, {
+      cache: "no-store",
+      headers: { Accept: "application/vnd.github+json" },
+      signal: controller.signal
+    });
+    if (!response.ok) throw new Error(`GitHub HTTP ${response.status}`);
+    const release = await response.json();
+    const latestVersion = String(release.tag_name || "").replace(/^v/i, "");
+    if (!latestVersion) throw new Error("GitHub Release 未返回版本号");
+    return {
+      currentVersion,
+      latestVersion,
+      updateAvailable: compareVersions(latestVersion, currentVersion) > 0,
+      releaseUrl: release.html_url,
+      downloadUrl: UPDATE_DOWNLOAD_URL,
+      checkedAt: Date.now(),
+      error: null
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 function nowTs() {
   return Math.floor(Date.now() / 1000);
 }
@@ -141,8 +186,21 @@ function renderServices(snapshot, activeModel, priority = []) {
     els.services.append(row);
   }
 }
+
+function renderUpdate(updateState = {}) {
+  els.currentVersion.textContent = `v${updateState.currentVersion || chrome.runtime.getManifest().version}`;
+  els.downloadUpdateLink.hidden = !updateState.updateAvailable;
+  if (updateState.downloadUrl) els.downloadUpdateLink.href = updateState.downloadUrl;
+  els.updateStatus.textContent = updateState.error
+    ? `检查失败：${updateState.error}`
+    : updateState.updateAvailable
+      ? `发现 v${updateState.latestVersion}`
+      : updateState.checkedAt
+        ? "已是最新版本"
+        : "尚未检查更新";
+}
 if (globalThis.__STATUS_POPUP_TEST__) {
-  globalThis.__statusPopupTestHooks = { renderServices };
+  globalThis.__statusPopupTestHooks = { renderServices, renderUpdate };
 }
 
 
@@ -150,7 +208,8 @@ async function render() {
   const data = await send("getDashboard");
   if (!data?.ok) return;
 
-  const { config, state, snapshot } = data;
+  const { config, state, snapshot, updateState } = data;
+  renderUpdate(updateState);
   const activeModel = state.activeModel || config.monitorModel || config.modelPriority?.[0];
   const modelState = state.models?.[activeModel] || {
     lastOk: null,
@@ -218,6 +277,22 @@ els.refreshBtn.addEventListener("click", async () => {
 
 els.optionsBtn.addEventListener("click", () => {
   chrome.runtime.openOptionsPage();
+});
+
+els.checkUpdateBtn.addEventListener("click", async () => {
+  els.checkUpdateBtn.disabled = true;
+  els.updateStatus.textContent = "正在检查...";
+  try {
+    renderUpdate(await checkForUpdate());
+  } catch (error) {
+    renderUpdate({
+      currentVersion: chrome.runtime.getManifest().version,
+      updateAvailable: false,
+      error: error?.name === "AbortError" ? "版本检查超时" : String(error?.message || error)
+    });
+  } finally {
+    els.checkUpdateBtn.disabled = false;
+  }
 });
 
 render();
