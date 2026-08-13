@@ -7,6 +7,8 @@ const storage = {};
 const notifications = [];
 const listener = { addListener() {} };
 const context = {
+  AbortController,
+  clearTimeout,
   chrome: {
     alarms: {
       clear: async () => {},
@@ -34,7 +36,8 @@ const context = {
   Map,
   Math,
   Number,
-  Set
+  Set,
+  setTimeout
 };
 
 vm.createContext(context);

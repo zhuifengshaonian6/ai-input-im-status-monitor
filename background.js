@@ -19,6 +19,7 @@ const STORAGE_KEYS = {
   state: "state",
   snapshot: "snapshot"
 };
+const REQUEST_TIMEOUT_MS = 15_000;
 
 async function storageGet(keys) {
   return await chrome.storage.local.get(keys);
@@ -89,6 +90,40 @@ function selectService(services, priority) {
     priorityIndex: -1,
     reason: available ? "unlisted-ok" : "first-present"
   };
+}
+
+function validateStatusData(data) {
+  if (!data || !Array.isArray(data.services)) {
+    throw new Error("状态接口响应格式无效");
+  }
+  const services = data.services.filter((service) =>
+    typeof service?.model === "string"
+    && service.model.trim()
+    && service.last
+    && Number.isFinite(Number(service.last.ts))
+    && typeof service.last.ok === "boolean"
+  );
+  if (!services.length) throw new Error("状态接口未返回有效模型");
+  return { ...data, services };
+}
+
+async function fetchStatus(url, timeoutMs = REQUEST_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, {
+      cache: "no-store",
+      headers: { Accept: "application/json" },
+      signal: controller.signal
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return validateStatusData(await response.json());
+  } catch (error) {
+    if (error?.name === "AbortError") throw new Error("状态接口请求超时");
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 function ensureModelState(state, model) {
@@ -346,9 +381,7 @@ async function fetchAndProcess({ emitMessages = true } = {}) {
   const state = await getState();
 
   try {
-    const res = await fetch(config.sourceUrl, { cache: "no-store" });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
+    const data = await fetchStatus(config.sourceUrl);
     const selection = selectService(data.services, config.modelPriority);
     if (!selection) throw new Error("状态接口未返回任何模型");
 

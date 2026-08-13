@@ -50,6 +50,10 @@
 - [打开项目主页](https://github.com/zhuifengshaonian6/ai-input-im-status-monitor)
 - [下载最新版源码 ZIP](https://github.com/zhuifengshaonian6/ai-input-im-status-monitor/archive/refs/heads/main.zip)
 - [查看 Releases](https://github.com/zhuifengshaonian6/ai-input-im-status-monitor/releases)
+- [下载浏览器扩展发布包](https://github.com/zhuifengshaonian6/ai-input-im-status-monitor/releases/latest/download/ai-input-im-status-monitor-extension.zip)
+- [下载 Codex++ 脚本包](https://github.com/zhuifengshaonian6/ai-input-im-status-monitor/releases/latest/download/ai-input-im-status-monitor-codex-plus-plus.zip)
+- [直接下载自动切换脚本](https://raw.githubusercontent.com/zhuifengshaonian6/ai-input-im-status-monitor/main/codex-plus-plus/status-model-auto-switch.js)
+- [直接下载任务恢复脚本](https://raw.githubusercontent.com/zhuifengshaonian6/ai-input-im-status-monitor/main/codex-plus-plus/codex-task-recovery.js)
 
 `main.zip` 会随 `main` 分支更新自动指向最新版。下载并解压后，在 Chrome 或 Edge 的扩展管理页面选择包含 `manifest.json` 的目录即可。
 
@@ -75,6 +79,32 @@ Windows 与 macOS 的步骤相同，仅文件夹选择界面略有不同。
 5. 查看右下角面板：`AUTO` 表示正在自动检查，`PAUSED` 表示已暂停。
 
 Codex++ 内置脚本依赖其宿主页面结构。Codex 或 Codex++ 升级后若出现“Open the native model menu once to enable switching”，先重新打开一次原生模型菜单；仍无法识别时需要更新兼容选择器。
+
+### 在 Codex++ 中启用任务恢复
+
+1. 下载并导入 `codex-plus-plus/codex-task-recovery.js`。
+2. 启用脚本并重启 Codex++。
+3. 脚本会每 30 秒保存一次当前任务检查点。
+4. 发生网络或上游中断时，脚本只查找 Codex 原生的 Retry/Continue 操作；网络恢复后最多自动尝试 3 次。
+5. 右下角面板默认折叠，点击状态点可展开。
+
+脚本不会重发用户提示词，不创建新任务，也不读写 provider、API Key 或 `config.toml`。它只点击当前页面已经出现的原生恢复按钮；没有可确认的异常提示时不会自动点击普通的 Continue 按钮。
+
+### 让另一台设备上的 Codex 部署
+
+将以下内容作为一个完整任务发送给另一台设备上的 Codex：
+
+```text
+从 https://github.com/zhuifengshaonian6/ai-input-im-status-monitor 下载最新版本。
+安装浏览器扩展发布包，并将以下两个文件导入 Codex++ 用户脚本：
+- codex-plus-plus/status-model-auto-switch.js
+- codex-plus-plus/codex-task-recovery.js
+
+安装前备份 Codex++ 用户脚本配置；不要修改 provider、API Key、base_url 或 ~/.codex/config.toml；
+不要禁用现有脚本；仅追加并启用这两个脚本。安装后先运行语法检查，再启动验证。
+```
+
+详细步骤见 [部署指南](docs/DEPLOYMENT.md)。
 
 ### 从源码安装
 

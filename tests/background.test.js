@@ -5,6 +5,8 @@ const vm = require("node:vm");
 const source = fs.readFileSync("background.js", "utf8");
 const listener = { addListener() {} };
 const context = {
+  AbortController,
+  clearTimeout,
   chrome: {
     alarms: {
       clear: async () => {},
@@ -31,15 +33,16 @@ const context = {
   Math,
   Number,
   Set
+  ,setTimeout
 };
 
 vm.createContext(context);
 vm.runInContext(
-  `${source}\n;globalThis.testHooks = { selectService, processSample };`,
+  `${source}\n;globalThis.testHooks = { selectService, processSample, validateStatusData };`,
   context
 );
 
-const { selectService, processSample } = context.testHooks;
+const { selectService, processSample, validateStatusData } = context.testHooks;
 const priority = ["sol", "terra", "luna"];
 
 assert.equal(
@@ -105,6 +108,17 @@ assert.equal(
   "ignores duplicate samples"
 );
 assert.equal(modelState.history.length, 3);
+
+assert.throws(
+  () => validateStatusData({ services: [{ model: "sol", last: null }] }),
+  /未返回有效模型/
+);
+assert.equal(
+  validateStatusData({
+    services: [{ model: "sol", last: { ts: startTs, ok: true } }]
+  }).services.length,
+  1
+);
 
 
 console.log("background tests passed");

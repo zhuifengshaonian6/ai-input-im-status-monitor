@@ -33,6 +33,7 @@ const document = {
   body: new Element()
 };
 const source = fs.readFileSync("popup.js", "utf8").replace(/\nrender\(\);\s*$/, "");
+assert.match(source, /state\.sourceOnline === true/);
 const context = {
   __STATUS_POPUP_TEST__: true,
   chrome: {

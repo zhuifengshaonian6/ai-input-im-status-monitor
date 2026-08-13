@@ -185,7 +185,11 @@ async function render() {
   els.badToday.textContent = secondsToChinese(stats.badSeconds);
   els.badCount.textContent = `${stats.badCount} 次`;
   els.lastCheck.textContent = `更新 ${fmtTime(state.lastFetchTs || snapshot?.generatedAt)}`;
-  els.sourceStatus.textContent = state.lastError ? "读取失败" : "读取正常";
+  els.sourceStatus.textContent = state.lastError
+    ? "读取失败"
+    : state.sourceOnline === true
+      ? "读取正常"
+      : "等待数据";
   const statusNow = state.sourceOnline === false && state.sourceDownSinceTs ? state.sourceDownSinceTs : nowTs();
   els.statusDuration.textContent = modelState.statusSinceTs
     ? secondsToChinese(statusNow - modelState.statusSinceTs)
